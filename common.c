@@ -3184,6 +3184,14 @@ acx_i_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 		goto end;
 	}
 
+	if(unlikely(skb->len < 24)) {
+		/* silently drop the packet, since fw won't send it */
+		txresult = OK;
+		/* ...but indicate an error nevertheless */
+		adev->stats.tx_errors++;
+		goto end;
+	}
+
 	tx = acx_l_alloc_tx(adev);
 	if (unlikely(!tx)) {
 		printk_ratelimited("%s: start_xmit: txdesc ring is full, "

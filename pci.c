@@ -35,7 +35,7 @@
 
 /* Linux 2.6.18+ uses <linux/utsrelease.h> */
 #ifndef UTS_RELEASE
-#include <linux/utsrelease.h>
+#include <linux/vermagic.h>
 #endif
 
 #include <linux/compiler.h> /* required for Lx 2.6.8 ?? */
@@ -115,6 +115,16 @@ static int acxpci_e_open(struct net_device *ndev);
 static int acxpci_e_close(struct net_device *ndev);
 static void acxpci_s_up(struct net_device *ndev);
 static void acxpci_s_down(struct net_device *ndev);
+
+static const struct net_device_ops acxpci_netdev_ops = {
+     .ndo_open = &acxpci_e_open,
+     .ndo_stop = &acxpci_e_close,
+     .ndo_start_xmit = &acx_i_start_xmit,
+     .ndo_set_multicast_list = &acxpci_i_set_multicast_list,
+     .ndo_change_mtu = &acx_e_change_mtu,
+     .ndo_tx_timeout = &acxpci_i_tx_timeout,
+     .ndo_get_stats = &acx_e_get_stats,
+};
 
 
 /***********************************************************************
@@ -1547,17 +1557,11 @@ static int __devinit acxpci_e_probe(struct pci_dev *pdev, const struct pci_devic
 	}
 
 	ether_setup(ndev);
-	ndev->open = &acxpci_e_open;
-	ndev->stop = &acxpci_e_close;
-	ndev->hard_start_xmit = &acx_i_start_xmit;
-	ndev->get_stats = &acx_e_get_stats;
+	ndev->netdev_ops = &acxpci_netdev_ops;
 #if IW_HANDLER_VERSION <= 5
 	ndev->get_wireless_stats = &acx_e_get_wireless_stats;
 #endif
 	ndev->wireless_handlers = (struct iw_handler_def *)&acx_ioctl_handler_def;
-	ndev->set_multicast_list = &acxpci_i_set_multicast_list;
-	ndev->tx_timeout = &acxpci_i_tx_timeout;
-	ndev->change_mtu = &acx_e_change_mtu;
 	ndev->watchdog_timeo = 4 * HZ;
 	ndev->irq = pdev->irq;
 	ndev->base_addr = pci_resource_start(pdev, 0);
@@ -1963,7 +1967,12 @@ static void acxpci_s_up(struct net_device *ndev)
 		acx_set_status(adev, ACX_STATUS_1_SCANNING); break;
 	case ACX_MODE_3_AP:
 	case ACX_MODE_MONITOR:
-		acx_set_status(adev, ACX_STATUS_4_ASSOCIATED); break;
+		acx_set_status(adev, ACX_STATUS_4_ASSOCIATED);
+		adev->msdu_lifetime = 0;/* no lifetime at all */
+		adev->short_retry = 0; /* no retries for (short) non-RTS packets */
+		adev->long_retry = 0; /* no retries for long (RTS) packets */
+
+		break;
 	}
 
 	acx_s_start(adev);
@@ -3333,12 +3342,14 @@ static void handle_tx_error(acx_device_t *adev, u8 error, unsigned int finger)
 		break;
 	}
 	adev->stats.tx_errors++;
+#if 0
 	if (adev->stats.tx_errors <= 20)
 		printk("%s: tx error 0x%02X, buf %02u! (%s)\n",
 				adev->ndev->name, error, finger, err);
 	else
 		printk("%s: tx error 0x%02X, buf %02u!\n",
 				adev->ndev->name, error, finger);
+#endif
 }
 
 unsigned int acxpci_l_clean_txdesc(acx_device_t *adev)

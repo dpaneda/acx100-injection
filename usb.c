@@ -170,6 +170,17 @@ acxusb_driver = {
 	.id_table = acxusb_ids
 };
 
+static const struct net_device_ops acxusb_netdev_ops = {
+     .ndo_open = &acxusb_e_open,
+     .ndo_stop = &acxusb_e_close,
+     .ndo_start_xmit = &acx_i_start_xmit,
+     .ndo_set_multicast_list = &acxusb_i_set_rx_mode,
+     .ndo_change_mtu = &acx_e_change_mtu,
+#ifdef HAVE_TX_TIMEOUT
+     .ndo_tx_timeout = &acxusb_i_tx_timeout,
+#endif
+     .ndo_get_stats = &acx_e_get_stats,
+};
 
 /***********************************************************************
 ** USB helper
@@ -845,20 +856,14 @@ acxusb_e_probe(struct usb_interface *intf, const struct usb_device_id *devID)
 	/* Register the callbacks for the network device functions */
 
 	ether_setup(ndev);
-	ndev->open = &acxusb_e_open;
-	ndev->stop = &acxusb_e_close;
-	ndev->hard_start_xmit = (void *)&acx_i_start_xmit;
-	ndev->get_stats = (void *)&acx_e_get_stats;
+    ndev->netdev_ops = &acxusb_netdev_ops,
 #if IW_HANDLER_VERSION <= 5
 	ndev->get_wireless_stats = (void *)&acx_e_get_wireless_stats;
 #endif
 	ndev->wireless_handlers = (struct iw_handler_def *)&acx_ioctl_handler_def;
-	ndev->set_multicast_list = (void *)&acxusb_i_set_rx_mode;
 #ifdef HAVE_TX_TIMEOUT
-	ndev->tx_timeout = &acxusb_i_tx_timeout;
 	ndev->watchdog_timeo = 4 * HZ;
 #endif
-	ndev->change_mtu = &acx_e_change_mtu;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,24)) && defined(SET_MODULE_OWNER)
 	SET_MODULE_OWNER(ndev);
 #endif

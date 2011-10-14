@@ -221,7 +221,6 @@
 #ifndef IRQ_NONE
 #define IRQ_NONE
 #define IRQ_HANDLED
-typedef void irqreturn_t;
 #endif
 
 #ifndef ARPHRD_IEEE80211_PRISM

@@ -106,17 +106,11 @@ void log_fn_exit_v(const char *funcname, int v);
 		if (acx_debug & (chan)) \
 			printk(args); \
 	} while (0)
-#define printk_ratelimited(args...) printk(args)
 
 #else /* Non-debug build: */
 
 #define log(chan, args...)
 /* Standard way of log flood prevention */
-#define printk_ratelimited(args...) \
-do { \
-	if (printk_ratelimit()) \
-		printk(args); \
-} while (0)
 
 #endif /* ACX_DEBUG */
 
