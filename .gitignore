@@ -1,0 +1,7 @@
+.*.cmd
+*.o
+.tmp_versions/
+Module.symvers
+acx.ko
+acx.mod.c
+modules.order
